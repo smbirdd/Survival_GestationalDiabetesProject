@@ -1,0 +1,7 @@
+"0","root <- ""/Users/sarahbird/Library/CloudStorage/OneDrive-TheUniversityofColoradoDenver/SurvivalProject"""
+"0",""
+"0","epoch <- read_sas(here::here(root, ""data"", ""processedData"", ""epoch2.sas7bdat""))"
+"0","obesity <- readRDS(here::here(root, ""data"", ""processedData"", ""analysis_datasets"","
+"0","                              ""obese_dataset_20241106.rds""))"
+"0","overweight <- readRDS(here::here(root, ""data"", ""processedData"", ""analysis_datasets"","
+"0","                              ""overweight_dataset_20241106.rds""))"

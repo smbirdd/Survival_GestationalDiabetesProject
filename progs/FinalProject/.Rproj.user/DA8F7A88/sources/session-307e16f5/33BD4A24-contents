@@ -1,0 +1,354 @@
+---
+title: Exposure to Maternal Gestational Diabetes on Adiposity in the Exploring Perinatal
+  Outcomes Among Children (EPOCH) Study
+author: "Sarah Bird"
+fontsize: 12pt
+output:
+  pdf_document: null
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+    code_folding: show
+  word_document:
+    toc: true
+    toc_depth: '4'
+header-includes:
+- \usepackage{color,soul}
+- \usepackage{fancyhdr}
+- \pagestyle{fancy}
+- \fancyhead[CO,CE]{BIOS 6646 Survival Analysis Final Project}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(kableExtra)
+library(knitr)
+library(magrittr)
+library(bshazard)
+library(KMsurv)
+library(km.ci)
+library(survival)
+library(survminer)
+library(patchwork)
+library(broom)
+library(naniar)
+library(patchwork)
+library(survminer)
+library(here)
+library(ggplotify)
+library(cowplot)
+library(gridExtra)
+library(gtsummary)
+library(KMsurv)
+root <- "/Users/sarahbird/Library/CloudStorage/OneDrive-TheUniversityofColoradoDenver/SurvivalProject"
+options(knitr.kable.NA = '')
+```
+
+```{r data-readin}
+######################################################
+#
+# Reading in the data
+#
+######################################################
+# Read in the obesity analysis dataset
+obesity <- readRDS(here::here(root, "data", "processedData", "analysis_datasets",
+                              "obesityDataset_20241116.rds")) %>%
+  filter( (PID != 20178) & (PID != 20053))
+# Read in the overweight analysis dataset
+overweight <- readRDS(here::here(root, "data", "processedData", "analysis_datasets",
+                                 "overweightDataset_20241116.rds")) %>%
+  filter( (PID != 20178) & (PID != 20053))
+# Read in the recurrent dataset
+recurrent <- readRDS(here::here(root, "data", "processedData", "analysis_datasets",
+                                "recurrentEPOCH_20241113.rds"))
+
+# Read in the models and diagnostic plots
+models <- readRDS(here::here(root, "data", "processedData", "analysis_results", "models_20241123.rds"))
+plots  <- readRDS(here::here(root, "data/processedData/analysis_results/diagnosticPlots_20241124.rds"))
+
+# Read in table 1 data
+tbl1 <- readRDS( here::here(root, "data", "processedData", "table1Data_20241124.rds"))
+```
+
+
+## Introduction
+
+
+In the United States, the rates of obesity have been steadily rising, including among the population of children and prepregnant women$^1$. This increase in obesity has been accompanied by a growing prevalence of diabetes, both of which are now being diagnosed at increasingly younger ages$^{2,3}$. Researchers are becoming more interested in investigating the physiological, biological, and sociological factors that contribute to this concerning surge in childhood obesity. Recent studies have been exploring these factors which include 1) physiological factors (such as genetics, basal metabolic rate, exposure to diseases), 2) socio-economic influences (like access to affordable, healthy food), 3) physical activity levels (including time spent being physically active and sedentary), and 4) dietary habits (such as portion size, intake of sugary beverages and fast food)$^4$. One avenue of particular interest is the relationship between exposure to gestational diabetes in utero and the development of obesity during puberty.
+
+Gestational diabetes is a form of glucose intolerance that occurs during pregnancy, and is usually diagnosed in the 24th to 28th week of pregnancy$^5$. It's exact cause is unknown, but researchers believe that hormones produced by the placenta during pregnancy, produces hormones that block the ability to use insulin effectively$^6$. Previous studies have linked exposure to gestational diabetes (GDM) during intrauterine life with increased fetal growth, adiposity, fetal overnutrition, increased offspring body mass, and risk for becoming overweight or obesity$^{7-9}$. However, to our knowledge, there are no studies that examine for a potential association between exposure of gestational diabetes and the time it takes for an individual to first become overweight or obese. This study aims to leverage survival data analysis techniques to explore the relationship between exposure in utero to gestational diabetes and time to obesity and overweight.
+
+## Methods 
+
+### Study Population
+
+The Exploring Perinatal Outcomes Among Children (EPOCH) study is an prospective, observational study that enrolled 604 mother/child dyads in Colorado who were selected for inclusion based on intrauterine exposure to maternal gestational diabetes status. Participants were 6-13 years old, born of singleton pregnancies at a single hospital in Denver between 1992 and 2002, whose parents were still members of the Kaiser Permanente of Colorado Health Plan (KPCO). Eligible participants were children exposed to maternal GDM and a random sample of children not exposed to GDM and without intrauterine growth restriction, which is defined as gestational age at birth adjusted birth weight being below the 10th percentile.
+
+### Measurements 
+
+Physician diagnosed maternal diabetes status was extracted from the KPCO database. GDM was coded as present if diagnosed through the standard KPCO screening protocol and was absent if negative. All participants were invited to two research office visits in which standard anthropometric measures were recorded, such as height and weight. Both measures were measured twice, and then averaged together. The first study visit occurred during early childhood, at a mean age of 10.5 years. The second study visit happened in the later stages of adolescence, at a mean age of 16.4 years of age. Previously recorded measurements of length and height were extracted from pediatric office visits from either the KPCO medical record or from the study participant's non-KPCO provider records. More information about measurement collection and the study design is presented by Crume *et al*$^{10}$.
+
+### Outcome
+
+The outcome is time to first obesity for the first aim, and time to incidence of first becoming overweight for the secondary hypothesis. Both outcomes will be generated using the CDC growth charts$^{11}$. Obesity will be classified as a BMI of greater than or equal to the 95th percentile. Overweight will be classified as a BMI of greater than or equal to the 85th percentile and less than 95th percentile.
+
+
+### Statistical Analysis
+
+
+Descriptive statistics were obtained to visualize the cohort of participants and the distribution of BMI at each EPOCH visit. Kaplan-Meier curves were generated to visualize the differential time to first occurrence of obesity and overweight by exposure to gestational diabetes. 
+
+To assess if there were differences in the hazards of developing obesity or becoming overweight, semi-parametric cox proportional hazards models were fit. The primary exposure of interest was exposure to gestational diabetes. An adjustment for household income was also considered as a time-varying covariate. Because it was not possible for all participants to have medical records abstracted since their births, left truncation was adjusted for in the analysis. The assumption of the proportionality of hazards were assessed by examining the Schoenfeld residuals and by visualizing log-log and log plots of the survival functions for proportionality and linearity, respectively. Score, deviance, and cox-snell residuals were examined to check for influential points, outliers, and to assess overall model fit. Participants whose score residuals are beyond 0.3 units will be examined from the analysis due to the large impact their observations have on the data.
+
+All Wald tests will be conducted at a 0.05 significance level. Analyses were conducted in R using the Survival and Survminer packages$^{12,13}$. 
+
+
+
+## Results
+
+### Participant Characteristics
+
+
+```{r table1}
+epoch_demo <- tbl1 %>%
+  filter( (PID != 20178) & (PID != 20053)) %>%
+  select(PID, child_sex, child_race, education_mother_birth, householdincome_birth)
+
+gdmExposure <- obesity %>%
+  group_by(PID) %>%
+  slice(1) %>%
+  select(PID, gdm)
+
+epoch_demo2 <- merge(epoch_demo, gdmExposure, by = "PID", all.x = TRUE) %>%
+  select(!PID)
+
+epoch_demo2 %>%
+  relocate(child_sex, child_race, householdincome_birth, education_mother_birth) %>%
+  mutate(gdm = ifelse(gdm == 1, "Exposure to GDM", "No Exposure to GDM")) %>%
+  tbl_summary(by = gdm,
+              label = list(child_sex = "Sex",
+                           child_race = "Race",
+                           householdincome_birth = "Household Income",
+                           education_mother_birth = "Mother's Education at Child's Birth")) %>%
+  # convert to kableExtra
+  as_kable_extra(booktabs = TRUE,
+                 caption = "Participant Characteristics") %>%
+  # reduce font size to make table fit. 
+  # you may also use the `latex_options = "scale_down"` argument here.
+  kableExtra::kable_styling(latex_options = c("scale_down"))
+```
+
+Table 1 presents descriptive statistics for the EPOCH participants in the study. A total of 604 individuals participated in the EPOCH study. Two participants were omitted from the analysis because they only had data collected at the first EPOCH visit. In total, 99 participants (16.4%) of those enrolled were exposed to gestational diabetes in utero. Across both groups, there was an approximately equal number of males and females. The majority of participants self-identified as non-Hispanic white (61-45%), though the next largest ethnic group enrolled were those who identified as Hispanic (30-40%). Household income and maternal education at birth are summarized in Table 1.
+
+
+### Aim 1: Time to Obesity
+
+Results from the cox proportional hazards model are presented in Table 2. Exposure to gestational diabetes was found to not be associated with time to first development of obesity $(p=0.08)$. However, the model presented in Table 2 shows that there was evidence of an association between household income and time to developing obesity in this cohort of children. A likelihood ratio test was performed and revealed that including household income as a time varying covariate significantly improved model fit $(p=0.03)$. Specifically, children whose household income is greater than \$50,000 have a 53.2% decrease in the hazards of the first instance of developing obesity as compared to children whose household income is less than \$25,000 (95% Wald CI: 22.6%, 71.7%). All other effects were found to not be statistically significant. The log-log plots, as shown in the appendix, demonstrate that the proportionality of hazards assumption is questionable. Diagnostic plots are presented in the appendix. The Cox Snell residuals indicate that the model may not have the best fit. The deviance residuals look decent for the amount of data used in the modelling process. The score residuals indicate the presence of two influential points, but removing those two points did not alter inference of the model, so the observations were retained.
+
+
+```{r obesity-table}
+fit_obesity <- models$covariate_model[[1]]
+tidy(fit_obesity, exp = TRUE, conf.int = TRUE) %>%
+  select(!c(statistic, std.error)) %>%
+  mutate(term = case_when(
+    term == "gdm" ~ "Gestational Diabetes",
+    term == "household_income525to49,999" ~ "Household Income: $25,000-$49,999",
+    term == "household_income5GT50,000" ~ "Household Income: Greater than $50,000",
+    term == "household_income5Don't know or Refused" ~ "Household Income: Don't Know or Refused",
+  )) %>%
+  knitr::kable(col.names = c("Term", "Estimate", "P-value", "95% Lower Bound",
+                             "95% Upper Bound"),
+               digits = 3,
+               booktabs = TRUE, "latex",
+               caption = "Time to first development of obesity") %>%
+  kableExtra::kable_styling(latex_options = c("striped", "scale_down",
+                                              "HOLD_position")) %>%
+  footnote("This table presents the hazard ratios for each covariate in the model. 95% Wald confidence intervals are presented. Time to the first instance of developing obesity was not found to be significantly associated with exposure to gestational diabetes. However, for those whose household income was greater than $50,000, the hazards of the first instance of obesity were found to be reduced by 53.2%",
+           threeparttable = TRUE)
+
+```
+
+
+### Time to Becoming Overweight
+
+Table 3 presents the exponentiated coefficients from the cox proportional hazard regression analysis. In this analysis, it was found that exposure to gestational diabetes had a significant association with time to becoming overweight in this cohort of children at an $\alpha = 0.05$ level $(p=0.002)$. For those who were exposed to gestational diabetes, the hazards of the first instance of becoming overweight were increased by 62.5% as compared to those who were not exposed to gestational diabetes, holding income level constant (95% Wald CI: 1.2, 2.2). Household income was not found to be significantly associated with time to becoming overweight. A sensitivity analysis was conducted to see if the parameter estimates changed substantially after removing household income from the model. The parameter estimate changed marginally, so household income was retained in the model. The proportionality of hazards was verified with log-log plots and the Kaplan-Meier curves. The Cox Snell residuals, similar to the first aim, indicate that the model may not have the best fit. The score residuals indicate the presence of one influential points, but removing that point did not alter inference of the model, so the observations were retained.
+
+
+```{r overweight_table}
+fit_overweight <- models$covariate_model[[2]]
+tidy(fit_overweight, exp = TRUE, conf.int = TRUE) %>%
+  select(!c(statistic, std.error)) %>%
+  mutate(term = case_when(
+    term == "gdm" ~ "Gestational Diabetes",
+    term == "household_income$25,000-$49,999" ~ "Household Income: $25,000-$49,999",
+    term == "household_income$50,000-$74,999" ~ "Household Income: $50,000-$74,999",
+    term == "household_income$75,000+" ~ "Household Income: $75,000+",
+    term == "household_incomeDon't know or Refused" ~ "Household Income: Don't Know or Refused",
+  )) %>%
+  knitr::kable(col.names = c("Term", "Estimate", "P-value", "95% Lower Bound",
+                             "95% Upper Bound"),
+               digits = 3,
+               booktabs = TRUE,
+               "latex",
+               caption = "Time to first instance of becoming overweight") %>%
+  kableExtra::kable_styling(latex_options = c("striped", "scale_down", 
+                                              "HOLD_position")) %>%
+  footnote("This table presents the hazard ratios, and corresponding 95% Wald confidence intervals, for each covariate in the model. Exposure to gestational diabetes was found to be significantly associated with time to becoming overweight (p=0.002). Participants who were exposed to gestational diabetes were found to have an increased hazards of their first instance of becoming overweight of approximately 62% as compared to those who were not exposed to gestational diabetes, holding household income constant.",
+           threeparttable = TRUE)
+
+```
+
+
+## Discussion
+
+This analysis examined the relationship between exposure to gestational diabetes in utero with time to first development of obesity and overweight in the EPOCH study. We found that exposure to gestational diabetes was associated with first instance of overweight, but found no evidence that gestational diabetes was associated with time to first obesity. Household income was found to be significantly associated with time to developing first obesity. Households who had higher income were found to, on average, have a lower hazard of developing obesity. This finding is unsurprising, as having higher income has been found to be associated with a higher Healthy Eating Index (HEI) in prior studies$^{14}$. However, household income was found to not be significantly associated with time to becoming overweight. Becoming overweight is a less severe condition that precedes obesity. Higher-income households may have better access to healthcare resources, enabling them to address weight concerns more effectively after an initial diagnosis of being overweight, compared to those with lower household incomes, which could help explain this disparity.
+
+The limitations of this analysis should be noted. The data realized approximately 38% drop out between the first visit in childhood and the second visit during late adolescence. This higher rate of drop out could impact inference. Second, the data resulting from medical record abstraction could be subject to higher rates of measurement error, as height and weight are not often primary measures that are subject to extreme care when an individual is present for doctor's visits. Finally, this study is actually indicative of *interval censoring*. This is because we do not have access to when, exactly, the participant became either obese or overweight. The only information that we have are that the individuals were obese or overweight at each doctor or study visit. Using a method that adjusts for the nature of interval censoring could be explored in future studies. Additionally, in future studies, we could conduct an analysis under the recurrent event analysis framework and examine rates of obesity/overweight across the whole trajectory of childhood and adolescence. 
+
+## Citations
+
+1.	Yeh J, Shelton JA. Increasing prepregnancy body mass index: analysis of trends and contributing variables. Am J Obstet Gynecol. 2005;193(6):1994-1998. doi:10.1016/j.ajog.2005.05.001
+2.	Kim J, Peterson KE, Scanlon KS, et al. Trends in overweight from 1980 through 2001 among preschool-aged children enrolled in a health maintenance organization. Obes Silver Spring Md. 2006;14(7):1107-1112. doi:10.1038/oby.2006.126
+3.	Ogden CL, Carroll MD, Lawman HG, et al. Trends in Obesity Prevalence Among Children and Adolescents in the United States, 1988-1994 Through 2013-2014. JAMA. 2016;315(21):2292-2299. doi:10.1001/jama.2016.6361
+4.	Sahoo K, Sahoo B, Choudhury AK, Sofi NY, Kumar R, Bhadoria AS. Childhood obesity: causes and consequences. J Fam Med Prim Care. 2015;4(2):187. doi:10.4103/2249-4863.154628
+5.	Definition & Facts of Gestational Diabetes - NIDDK. National Institute of Diabetes and Digestive and Kidney Diseases. Accessed November 29, 2024. https://www.niddk.nih.gov/health-information/diabetes/overview/what-is-diabetes/gestational/definition-facts
+6.	Gestational Diabetes: Symptoms, Causes, and Treatments. Yale Medicine. Accessed November 29, 2024. https://www.yalemedicine.org/conditions/gestational-diabetes-symptoms-causes-treatments
+7.	Hockett CW, Harrall KK, Moore BF, et al. Persistent effects of in utero overnutrition on offspring adiposity: the Exploring Perinatal Outcomes among Children (EPOCH) study. Diabetologia. 2019;62(11):2017-2024. doi:10.1007/s00125-019-04981-z
+8.	Crume TL, Ogden L, West NA, et al. Association of exposure to diabetes in utero with adiposity and fat distribution in a multiethnic population of youth: the Exploring Perinatal Outcomes among Children (EPOCH) Study. Diabetologia. 2010;54(1):87. doi:10.1007/s00125-010-1925-3
+9.	Kaar JL, Crume T, Brinton JT, Bischoff KJ, McDuffie R, Dabelea D. Maternal Obesity, Gestational Weight Gain and Offspring Adiposity: the EPOCH Study. J Pediatr. 2014;165(3):509. doi:10.1016/j.jpeds.2014.05.050
+10.	Crume TL, Ogden L, Daniels S, Hamman RF, Norris JM, Dabelea D. The Impact of In Utero Exposure to Diabetes on Childhood Body Mass Index Growth Trajectories: The EPOCH Study. J Pediatr. 2011;158(6):941. doi:10.1016/j.jpeds.2010.12.007
+11.	CDC. Child and Teen BMI Categories. BMI. November 22, 2024. Accessed November 30, 2024. https://www.cdc.gov/bmi/child-teen-calculator/bmi-categories.html
+12.	Kassambara A, Kosinski M, Biecek P. Survminer: Drawing Survival Curves Using “Ggplot2.”; 2021. https://CRAN.R-project.org/package=survminer
+13.	Therneau TM. A Package for Survival Analysis in R.; 2024. https://CRAN.R-project.org/package=survival
+14.	French SA, Tangney CC, Crane MM, Wang Y, Appelhans BM. Nutrition quality of food purchases varies by household income: the SHoPPER study. BMC Public Health. 2019;19(1):231. doi:10.1186/s12889-019-6546-2
+
+
+
+
+## Supplementary
+
+
+### Aim 1: Plots
+
+
+#### Log-log plots
+
+The log-log plots to examine the proportionality of hazards assumption are presented below:
+
+```{r obesity-km-plots, fig.height=14, fig.width=12}
+# Let's investigate the hazards by differing household income levels
+obesity_plots <- c()
+obesity_loglog <- c()
+for (i in 1:length(table(obesity$household_income))) {
+  level <- noquote(names(table(obesity$household_income))[i])
+  temp <- survfit(Surv(last_age, ageyearsnew, obesity) ~ gdm + household_income, 
+                  data= obesity, 
+                  subset = (household_income == level))
+  obesity_plots[[i]] <- ggsurvplot(temp) + 
+    labs(title = paste0("Kaplan-Meier Curve: Income Level = ", level))
+  obesity_loglog[[i]] <- ggsurvplot(temp, fun = "cloglog") + 
+    labs(title = paste0("Kaplan-Meier Curve: Income Level = ", level))
+}
+
+obesityKM <- plot_grid(obesity_plots[[1]]$plot, obesity_plots[[2]]$plot, 
+                        obesity_plots[[3]]$plot, obesity_plots[[4]]$plot,
+                        obesity_plots[[5]]$plot,
+                        nrow = 3, ncol = 2)
+
+obesityLoglogKKM <- plot_grid(obesity_loglog[[1]]$plot, obesity_loglog[[2]]$plot, 
+                              obesity_loglog[[3]]$plot, obesity_loglog[[4]]$plot,
+                              obesity_loglog[[5]]$plot,
+                                 nrow = 3, ncol = 2)
+
+obesityKM
+```
+
+```{r obesity-loglog-km, fig.height = 14, fig.width = 12}
+obesityLoglogKKM
+```
+
+
+#### Diagnostic Plots
+
+Below are the diagnostic plots for the final models selected:
+
+```{r aim-1-diagnostics}
+diagnostics <- readRDS(here::here(root, "data", "processedData", "analysis_results", "diagnosticPlots_20241124.rds"))
+
+diagnostics$coxsnell[[1]] +
+  labs(title = "Cox Snell Residuals",
+       subtitle = "Aim 1: Obesity Outcome")
+```
+
+```{r aim1-devresids}
+diagnostics$deviance_residuals[[1]] +
+  labs(title = "Deviance Residual Plots",
+       subtitle = "Aim 1: Obesity Outcome")
+
+diagnostics$dfbetas[[1]] +
+  labs(title = "Score Residuals",
+       subtitle = "Aim 1: Obesity Outcome")
+```
+
+### Aim 2: Plots
+
+```{r overweight, fig.height=14, fig.width=12}
+overweight_income <- c()
+overweight_loglog <- c()
+for (i in 1:length(table(overweight$household_income))) {
+  level <- noquote(names(table(overweight$household_income))[i])
+  temp <- survfit(Surv(last_age, ageyearsnew, overweight) ~ gdm + household_income, 
+                  data= overweight, 
+                  subset = (household_income == level))
+  overweight_income[[i]] <- ggsurvplot(temp) + 
+    labs(title = paste0("Kaplan-Meier Curve: Income Level = ", level))
+  overweight_loglog[[i]] <- ggsurvplot(temp, fun = "cloglog") + 
+    labs(title = paste0("Kaplan-Meier Curve: Income Level = ", level))
+}
+
+overweightKKM <- plot_grid(overweight_income[[1]]$plot, overweight_income[[2]]$plot, 
+                            overweight_income[[3]]$plot, overweight_income[[4]]$plot,
+                            overweight_income[[5]]$plot,
+                            nrow = 3, ncol = 2)
+overweightLoglogKKM <- plot_grid(overweight_loglog[[1]]$plot, overweight_loglog[[2]]$plot, 
+                                   overweight_loglog[[3]]$plot, overweight_loglog[[4]]$plot,
+                                   overweight_loglog[[5]]$plot,
+                                   nrow = 3, ncol = 2)
+overweightKKM
+```
+
+```{r overweight-loglog-km, fig.height = 14, fig.width = 12}
+overweightLoglogKKM
+```
+
+
+
+#### Diagnostics
+
+Below are the diagnostic plots for the final models selected:
+
+```{r aim-2-diagnostics}
+diagnostics$coxsnell[[2]] +
+  labs(title = "Cox Snell Residuals",
+       subtitle = "Aim 2: Obesity Outcome")
+
+diagnostics$deviance_residuals[[2]] +
+  labs(title = "Deviance Residual Plots",
+       subtitle = "Aim 2: Obesity Outcome")
+
+diagnostics$dfbetas[[2]] +
+  labs(title = "Score Residuals",
+       subtitle = "Aim 2: Obesity Outcome")
+```
+
+
+
+
+
+
+
+
+
+

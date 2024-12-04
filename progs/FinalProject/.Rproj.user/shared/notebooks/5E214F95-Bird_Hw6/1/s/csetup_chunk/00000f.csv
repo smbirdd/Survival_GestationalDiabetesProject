@@ -1,0 +1,49 @@
+"0","knitr::opts_chunk$set(echo = FALSE)"
+"0","library(tidyverse)"
+"0","library(kableExtra)"
+"2","
+Attaching package: ‘kableExtra’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    group_rows
+
+"
+"0","library(bshazard)"
+"2","Loading required package: splines
+"
+"2","Loading required package: Epi
+"
+"0","library(KMsurv)"
+"0","library(km.ci)"
+"0","library(survival)"
+"0","library(survminer)"
+"0","library(patchwork)"
+"2","
+Attaching package: ‘patchwork’
+
+"
+"2","The following object is masked from ‘package:cowplot’:
+
+    align_plots
+
+"
+"0","library(broom)"
+"0","library(naniar)"
+"0","library(here)"
+"0","library(cowplot)"
+"0","library(gridExtra)"
+"2","
+Attaching package: ‘gridExtra’
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    combine
+
+"
+"0","library(gtsummary)"
+"0","library(powerSurvEpi)"
+"0","data_folder <- ""/Users/sarahbird/Documents/PhD/Year3/Bios6646-Survival/HomeworkWorkspace"""
+"0","options(knitr.kable.NA = '')"

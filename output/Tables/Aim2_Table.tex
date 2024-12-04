@@ -1,0 +1,29 @@
+\documentclass{article}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[table]{xcolor}
+\usepackage[labelformat=empty]{caption}
+\begin{document}
+
+% LaTeX table
+\begin{table}
+\centering
+\caption{Time to first instance of becoming overweight}
+\centering
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{
+\begin{tabular}[t]{lrrrr}
+\toprule
+Term & Estimate & P-value & 95\% Lower Bound & 95\% Upper Bound\\
+\midrule
+\cellcolor{gray!10}{Gestational Diabetes} & \cellcolor{gray!10}{1.625} & \cellcolor{gray!10}{0.002} & \cellcolor{gray!10}{1.201} & \cellcolor{gray!10}{2.198}\\
+Household Income: \$25,000-\$49,999 & 0.642 & 0.057 & 0.407 & 1.014\\
+\cellcolor{gray!10}{Household Income: \$50,000-\$74,999} & \cellcolor{gray!10}{0.666} & \cellcolor{gray!10}{0.083} & \cellcolor{gray!10}{0.420} & \cellcolor{gray!10}{1.055}\\
+NA & 0.589 & 0.028 & 0.367 & 0.944\\
+\cellcolor{gray!10}{Household Income: Don't Know or Refused} & \cellcolor{gray!10}{0.201} & \cellcolor{gray!10}{0.121} & \cellcolor{gray!10}{0.026} & \cellcolor{gray!10}{1.530}\\
+\bottomrule
+\multicolumn{5}{l}{\rule{0pt}{1em}\textit{Note: }}\\
+\multicolumn{5}{l}{\rule{0pt}{1em}This table presents the hazard ratios for each covariate in the model. 95\% Wald confidence intervals are presented.}\\
+\end{tabular}}
+\end{table}
+
+\end{document}

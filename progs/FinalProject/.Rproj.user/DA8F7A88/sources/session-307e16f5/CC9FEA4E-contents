@@ -1,0 +1,168 @@
+---
+title: "Interim Project Update"
+output:
+  pdf_document:
+  html_document:
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+# Include all packages needed
+library(tidyverse)
+library(survival)
+library(here)
+library(haven)
+library(labelled)
+library(gtsummary)
+library(kableExtra)
+library(gt)
+library(survminer)
+```
+
+```{r data-readin}
+root <- "/Users/sarahbird/Library/CloudStorage/OneDrive-TheUniversityofColoradoDenver/SurvivalProject"
+
+epoch <- read_sas(here::here(root, "data", "processedData", "epoch2.sas7bdat"))
+obesity <- readRDS(here::here(root, "data", "processedData", "analysis_datasets",
+                              "obese_dataset_20241106.rds"))
+overweight <- readRDS(here::here(root, "data", "processedData", "analysis_datasets",
+                              "overweight_dataset_20241106.rds"))
+```
+
+**Key Research Question of Interest**
+
+
+* Aim 1: Evaluate the relationship between time to obesity and exposure to gestational diabetes.
+    * Hypothesis: Children who have been exposed to gestational diabetes during pregnancy will have a higher hazard of becoming obese.
+* Aim 2: Evaluate the relationship between time to becoming overweight and exposure to gestational diabetes. 
+    * Hypothesis: Children who have been exposed to gestational diabetes during pregnancy will have a higher hazard of becoming overweight
+
+
+**Description of the Dataset**
+
+The dataset that I will utilize is from the LEAD center. It is from the Exploring Perinatal Outcomes among Children (EPOCH) study, which is a retrospective cohort study. Participants in the study were enrolled from the Kaiser Permanente of Colorado Health Plan system and were aged 6-13 years of age upon enrollment. All participants were invited to a total of two research office visits and medical record abstraction was performed to obtain height and weight data from birth to the last visit (which occurred at the end of puberty). The first office visit occurred at the mean age of 10.4 (SD=1.5) years and the second at 16.7 (SD=1.2) years. At both visits demographic, anthropometric, and adiposity measures were collected.
+
+
+**Proposed Analysis Method** Kaplan Meier curves will also be generated to visualize the survival curves of the exposed and unexposed populations as a descriptive. A cox proportional hazards model will be used to investigate both aims. The main predictor to be assessed will be exposure to gestational diabetes during pregnancy. A Wald test will be conducted to assess a difference in the hazards at an $\alpha= 0.05$ level. Sociodemographic features will be selected for inclusion into the model. I will also vestigate education level at birth and at the second EPOCH visit as a time varying covariate. 
+
+I will also investigate stratifying the cox proportional hazards model by gender. I will first see if this makes sense by examining the survival curves by gender. If there is a large difference between the two shapes, which could also indicate violation of the proportional hazards assumption, I will stratify by gender which will modify the baseline hazards for each group to make them more flexible. 
+
+**Exploratory Plots**
+
+Here is a table 1 of the participants included for analysis:
+
+```{r table1}
+epoch_demo <- epoch %>%
+  group_by(PID) %>%
+  slice_head() %>%
+  ungroup %>%
+  select(gdm, child_sex, child_race, FH28, FH33) %>%
+  mutate(mom_edu = case_when(
+    FH28 %in% c("1", "2", "3", "4", "5", "6", "7") ~ "Less than High School Diploma",
+    FH28 %in% c("8") ~ "High School Diploma",
+    FH28 %in% c("10", "11") ~ "Some College",
+    FH28 == "9" ~ "Business/Technical School",
+    FH28 == "12" ~ "Associate Degree",
+    FH28 == "13" ~ "Bachelor's Degree",
+    FH28 == "14" ~ "Masters Degree",
+    FH28 == "15" ~ "Professional or Doctorate Degree",
+    FH28 == "16" ~ "Don't Know"
+  ), house_income = case_when(
+    FH33 %in% c("1", "2") ~ "$0-$24,999",
+    FH33 == "3" ~ "$25,000-$49,999",
+    FH33 == "4" ~ "$50,000-$74,999",
+    FH33 == "5" ~ "$75,000+",
+    FH33 %in% c("6", "7") ~ "Don't know or Refused"
+  ), race = case_when(
+    child_race == "1" ~ "Non-Hispanic White",
+    child_race == "2" ~ "Hispanic",
+    child_race == "3" ~ "Non-Hispanic Black",
+    child_race == "4" ~ "Non-Hispanic Other"
+  ), sex = case_when(
+    child_sex == "F" ~ "Female",
+    child_sex == "M" ~ "Male"
+  ), gdm = factor(gdm, levels = c(0,1), labels = c("No Gestational Diabetes",
+                                                   "Exposure to Gestational Diabetes"))) %>%
+  select(!c("FH33", "FH28", "child_race", "child_sex"))
+
+epoch_demo %>%
+  relocate(sex, race, house_income, mom_edu) %>%
+  tbl_summary(by = gdm,
+              label = list(sex = "Sex",
+                           race = "Race",
+                           house_income = "Household Income",
+                           mom_edu = "Mother's Education at Child's Birth")) %>%
+  # convert to kableExtra
+  as_kable_extra(booktabs = TRUE,
+                 caption = "Participant Characteristics") %>%
+  # reduce font size to make table fit. 
+  # you may also use the `latex_options = "scale_down"` argument here.
+  kableExtra::kable_styling(latex_options = c("scale_down"))
+```
+
+
+
+
+```{r kaplan-meier, echo = TRUE}
+# First, let's show what the data looks like
+obesity %>%
+  head()
+overweight %>%
+  head()
+
+##############################################
+# Kaplan-Meier Curve for the Obesity Outcome
+##############################################
+obese_outcomeGDM <- survfit(Surv(t_event, status) ~ gdm, 
+                            data= obesity)
+ggsurvplot(obese_outcomeGDM,
+           palette = "Pastel2",
+           conf.int = TRUE,
+           title = "Time to obesity by exposure to gestational diabetes",
+           legend.labs = c("No Exposure to GDM", "Exposure to GDM")) 
+
+##############################################
+# Kaplan-Meier Curve for the Overweight Outcome
+##############################################
+overweight_outcomeGDM <- survfit(Surv(t_event, status) ~ gdm, data= overweight)
+ggsurvplot(overweight_outcomeGDM,
+           palette = "Pastel2",
+           conf.int = TRUE,
+           title = "Time to overweight by exposure to gestational diabetes",
+           legend.labs = c("No Exposure to GDM", "Exposure to GDM")) 
+
+# Conduct a log-rank test to determine if the curves differ by the exposure
+logrank_obesity <- survdiff(Surv(t_event, status) ~ gdm, data= obesity)
+logrank_overweight <- survdiff(Surv(t_event, status) ~ gdm, data= overweight)
+logrank_obesity
+logrank_overweight
+```
+
+
+Above, I've presented the Kaplan-Meier curves for the two outcomes that I have outlined in the paper above. From examining these graphs, we can see that there is likely no evidence to reject that the proportionality of hazards is upheld when we simply consider the exposure. I have also conducted log-rank tests to see if the two survival curves differ by exposure to gestational diabetes. We've found that there is a significant difference in the overweight survival curves by exposure to gestational diabetes. Those who have been exposed to gestational diabetes have a lower median survival survival time (10.1 years of age) than those who were not exposed to gestational diabetes (17.6 years of age).
+
+
+## Supplementary
+
+(Please don't dock points because I went over, I had to submit a proposal for the LEAD center and I ended up writing a lot, I want to use it here too!!!)
+
+
+**Outcome**
+
+The outcome is time to obesity for the first aim, and time to becoming overweight for the secondary hypothesis. I will create obesity and overweight covariates using the following methods:
+
+* Both outcomes will be generated using the CDC growth charts. The methods are as follows: 
+    * Obesity will be classified as a BMI of >= 95th percentile 
+    * Overweight will be classified as a BMI of >= 85th percentile and < 95th percentile 
+    * Reference: https://www.cdc.gov/bmi/child-teen-calculator/bmi-categories.html
+
+
+
+
+
+
+
+
+
+

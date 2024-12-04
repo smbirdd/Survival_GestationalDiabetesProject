@@ -1,0 +1,4 @@
+"0",""
+"0","# Step 2) Fit the model with NO interaction terms"
+"0","re_model_noInt <- coxph(Surv(start, days, death) ~ organ + lt2  + frailty(hosp.gid), "
+"0","                  data = subset_transplant)"
